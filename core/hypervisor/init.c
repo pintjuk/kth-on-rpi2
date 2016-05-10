@@ -534,10 +534,30 @@ void start_slave()
     sysrg=sysrg|0x2000;
     COP_WRITE(COP_SYSTEM, COP_SYSTEM_CONTROL, sysrg);  
     
+    setup_sharedmem(vm_1.master_pt_va);
+    dump_mmu(vm_1.master_pt_va);
 
     printf("SLAVE C CODE\n");
     start_guest();
   }
+
+/**************************************
+ * Warning: this adds a shared 
+ * memory mapping for the guests
+ * ************************************/
+void setup_sharedmem(uint32_t table){
+        uint32_t va=0xE0000000;
+        uint32_t pa=0x11000000;
+        uint32_t domain=1;
+        uint32_t ap=3;
+        uint32_t s=1;
+        uint32_t c=1;
+        uint32_t b=1;
+        uint32_t tex=1;
+        uint32_t attr=(s<<16)|(tex<<12)|(ap<<10)|(domain<<5)|(c<<3)|(b<<2)|2;
+        uint32_t* entryaddr=table|(va>>18);
+        *entryaddr=(pa & 0xFFF00000)|attr;
+}
 
 void start_()
 {
@@ -551,28 +571,25 @@ void start_()
     soc_init();
     board_init();
 
-        /* Set up exception handlers and starting timer. */
+    /* Set up exception handlers and starting timer. */
     setup_handlers();
 
     /* DMMU initialization. */
     dmmu_init();
-
     slave_memory_init();
-   
-    // arm_clear_initial_pt_one_to_one(flpt_va);
-    /* Initialize hypervisor guest modes and data structures
-     * according to config file in guest*/
 
-   /* while(loop==0){
-        printf("");
+    /* while(loop==0){
     }*/
-
     multicore_guest_init();
+    setup_sharedmem(vm_0.master_pt_va);
+    dump_mmu(flpt_va);
+    dump_mmu(vm_0.master_pt_va);
+    dump_mmu(flpt_va_core_1);
 
     //dump_mmu(curr_flpt_va[1]);
     //dump_mmu(vm_1.master_pt_va);
     *((uint32_t*)(0x4000009C))=boot_slave-0xF0000000+0x01000000;
     printf("Hypervisor initialized.\n Entering Guest...\n");
-     start_guest();
+    start_guest();
     asm("b .");	//TODO: ALl clear until end!
 }
