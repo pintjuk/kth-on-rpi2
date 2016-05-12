@@ -76,6 +76,10 @@ extern uint32_t _interrupt_vector_table;
         extern hc_config minimal_config_1;
         extern hc_config minimal_config;
 #endif
+#ifdef MAXFLOW
+        extern hc_config minimal_config_1;
+        extern hc_config minimal_config;
+#endif
 /*****************************/
 /* DEBUG */
 void dump_mmu(addr_t adr)

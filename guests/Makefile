@@ -1,5 +1,5 @@
 
-SUBDIRS = minimal trusted dtest testguest
+SUBDIRS = minimal trusted dtest testguest maxflow
 
 all:
 	 set -e; for d in $(SUBDIRS); do $(MAKE) -C $$d ; done

@@ -83,12 +83,12 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2, uint32_t hyp
 		}
 	}
 	else if(curr_vm->current_guest_mode != HC_GM_TASK){
-	  printf("\tHypercall number: %d (%x, %x) called\n", hypercall_number, param0, param1);
+	  //printf("\tHypercall number: %d (%x, %x) called\n", hypercall_number, param0, param1);
 	  uint32_t res;
 	    switch(hypercall_number){		 
 	    /* TEMP: DMMU TEST */
                 case 1337:
-                    printf("This is test hypercall!\n");
+                    *(uint32_t*)(0x000FFFFF & param0)=get_pid();
                     return;
   	        case 666:
 		        //res = dmmu_handler(param0, param1, param2, curr_vm->current_mode_state->ctx.reg[3]);
