@@ -1,14 +1,16 @@
 #include "shared_alloc.h"
 #include "maxflow.h"    
-
+#include "ttas.h"
 
     /***********************
     * heap header
     * 0-4: magic number, signifies that heap is initilized
+    * 4-8: heap lock
     ***********************/
 #define HEAP_MAGIC (0xABC)
 static uint32_t* heap_magic=(uint32_t*)(SHARED_BASE);
-static uint32_t* heap_start=(uint32_t*)(SHARED_BASE+4);
+static uint32_t* big_heap_lock=(uint32_t*)(SHARED_BASE+4);
+static uint32_t* heap_start=(uint32_t*)(SHARED_BASE+8);
 static uint32_t* heap_end=(uint32_t*)(SHARED_END);
 #define ALLOCATED_BLOCK (1<<31)
 
@@ -24,6 +26,20 @@ static uint32_t* heap_end=(uint32_t*)(SHARED_END);
     #define DEBUG3(a, b, c) 
 #endif
 
+
+void init_heap()
+{
+    *big_heap_lock=1;
+    *heap_magic=HEAP_MAGIC;
+    DEBUG1("*initilizing heap\n");
+    DEBUG3("heap_magic %x\nheap_start %x\n", heap_magic, heap_start);
+    DEBUG3("heap_trailer %x\n aoeu %x \n", ((uint32_t*)SHARED_END)-1, 1<<32);
+    *heap_start = (heap_end-heap_start)&(~ALLOCATED_BLOCK);
+    DEBUG2("header of initial block %x\n", *heap_start); 
+    *(heap_end-1) = *heap_start;
+    *big_heap_lock=0;
+
+}
 
 void print_heap()
 {
@@ -52,18 +68,14 @@ void print_heap()
 
 void * sm_alloc(size_t size)
 {
-    /* TODO: lock here */
+
+    if(*heap_magic!=HEAP_MAGIC)
+        return NULL;
+
+    ttas_lock(big_heap_lock);
+
     DEBUG2("*sm alloc\n size=%x\n", size);
     uint32_t aligned_size = (size+3)/4;
-    if(*heap_magic!=HEAP_MAGIC){
-        *heap_magic=HEAP_MAGIC;
-        DEBUG1("*initilizing heap\n");
-        DEBUG3("heap_magic %x\nheap_start %x\n", heap_magic, heap_start);
-        DEBUG3("heap_trailer %x\n aoeu %x \n", ((uint32_t*)SHARED_END)-1, 1<<32);
-        *heap_start = (heap_end-heap_start)&(~ALLOCATED_BLOCK);
-        DEBUG2("header of initial block %x\n", *heap_start); 
-        *(heap_end-1) = *heap_start;
-    }
     
     uint32_t* current_block=heap_start;
     void* result=NULL;
@@ -109,16 +121,20 @@ void * sm_alloc(size_t size)
         }
         
     }
+    ttas_unlock(big_heap_lock);
     return result;
-    /* TODO: unlock here */
+    
 }
 
 
 
 void sm_free(void* ptr)
 {
-    /*TODO: acuier lock */
+    if(*heap_magic!=HEAP_MAGIC)
+        return NULL;
 
+    ttas_lock(big_heap_lock);
+    
     uint32_t* current_block = (uint32_t*)ptr;
     current_block--;
     DEBUG2("current block: %x\n", current_block);
@@ -153,5 +169,6 @@ void sm_free(void* ptr)
             
         }
     }
-    /* TODO: realice lock */
+
+    ttas_unlock(big_heap_lock);
 }

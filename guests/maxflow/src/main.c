@@ -157,6 +157,7 @@ void testIncrimentDicriment()
 void test_heap_singlecore()
 {
     if(getPid()==1){
+        init_heap();
         char* testchar1;
         short* testshort;
         int* testint;
@@ -206,7 +207,7 @@ void test_heap_singlecore()
         print_heap();
 
         printf("trying to alloc to much in two batches\n");
-        intarray1=sm_alloc(sizeof(int[262141]));
+        intarray1=sm_alloc(sizeof(int[262140]));
         print_heap();
         intarray2=sm_alloc(sizeof(int[10]));
         printf("result of second alloc %x\n", intarray2);
@@ -236,8 +237,7 @@ int i;
         {
             if(ptrs[i*2+1]!=NULL)
                 sm_free(ptrs[i*2+1]);
-
-        print_heap();
+            print_heap();
         }
 
         print_heap();
