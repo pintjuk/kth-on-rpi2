@@ -12,6 +12,11 @@ void ttas_lock(uint32_t* state)
     }
 }
 
+BOOL ttas_attempt_lock(uint32_t* state)
+{
+    return !TAS(state);
+}
+
 void ttas_unlock(uint32_t* state)
 {
     *state=0;

@@ -52,8 +52,10 @@ cas_return:
 .global getAndDicrement
 getAndDicrement:
 // r0=address, r1=oldvalue,r3=newvalue, r2=success
+    dmb
     ldrex r1, [r0]
     sub r3, r1, #1
+    dmb
     strex r2, r3, [r0]
     //if stored return old value
     cmp r2, #0
@@ -66,8 +68,10 @@ getAndDicrement:
 .global getAndIncrement
 getAndIncrement:
 // r0=address, r1=oldvalue, r2=success, r3=new value
+    dmb
     ldrex r1, [r0]
     add r3, r1, #1
+    dmb
     strex r2, r3, [r0]
     //if stored return old value
     cmp r2, #0

@@ -6,7 +6,7 @@
 #include "dtest.h"
 volatile uint32_t* shared_base=(uint32_t*)SHARED_BASE;
 
-
+#define __DMB { asm volatile ("dmb"); } 
 uint32_t getPid(){
     static int memorizepid= -1;
     if(-1!=memorizepid)
@@ -96,59 +96,250 @@ void testCAS()
 
 }
 
-
-void testIncrimentDicriment()
+void test_fail_IncrimentDicriment()
 {
-
+    
     volatile int* from;
     volatile int* to;
     volatile int* core0;
     volatile int* core1;
+    volatile int* core2;
+    volatile int* core3;
     int old;
     int pid = getPid();
     from=&shared_base[20];
     to=&shared_base[30];
     core0=&shared_base[12];
     core1=&shared_base[13];
+    core2=&shared_base[14];
+    core3=&shared_base[15];
+        if(pid==0)
+    {
+        old=*from=100000000;
+        *to=0;
+        *core0=0;
+        *core1=0;
+        *core2=0;
+        *core3=0;
+    }
+    // sunchronize
+    shared_base[pid]=1;
+    int i;
+    for(i=0; i<4; i++)
+        while(1!=shared_base[i]){};
+  //  if(pid!=0)
+  //      return;  
 
+    for(;;)
+    {
+        int old = *from;
+        if(0>=old)
+            break;
+        (*from)--;
+        (*to)++;
+        core0[pid]++;
+    }
     if(pid==0)
     {
-        old=shared_base[20]=10000000;
-        shared_base[30]=0;
-        shared_base[12]=0;
-        shared_base[13]=0;
+        if(old==*to && old==((*core0)+(*core1)+(*core2)+(*core3)))
+            printf("SUCCESS!\n");
+        printf("old: %i, now %i, to: %i\ncore0:%i, core1:%i, core2:%i, core3:%i\n", old,*from, *to, *core0, *core1, *core2, *core3);
+
     }
+
+}
+void fail_testIncrimentDicriment2()
+{
+   int calc=10000000; 
+    volatile int* from;
+    volatile int* to;
+    volatile int* core0;
+    volatile int* core1;
+    volatile int* core2;
+    volatile int* core3;
+    int old;
+    int pid = getPid();
+    from=&shared_base[20];
+    to=&shared_base[30];
+    core0=&shared_base[12];
+    core1=&shared_base[13];
+    core2=&shared_base[14];
+    core3=&shared_base[15];
+       
+    if(pid==0)
+    {
+        old=*from=10000000;
+        *to=0;
+        *core0=0;
+        *core1=0;
+        *core2=0;
+        *core3=0;
+    }
+        volatile int e=*from;
+        e=(*to);
+        e=(*core0);
+        e=(*core1);
+        e=(*core2);
+        e=(*core3);
+
 
     // sunchronize
-    shared_base[1+pid]=1;
-    while(1!=shared_base[2-pid]){};
+    shared_base[pid]=1;
+    int i;
+    __DMB
+    for(i=0; i<4; i++)
+        while(1!=shared_base[i]){};
+    __DMB
+        for(i=0;i<calc;i++)
+        {
+        
+            (*to)++;
+            core0[pid]++;
+
+        }
+    shared_base[pid]=2;
+    __DMB
+    for(i=0; i<4; i++)
+        while(2!=shared_base[i]){};
+    __DMB
 
     if(pid==0)
     {
+        if(calc*4==*to && calc*4==((*core0)+(*core1)+(*core2)+(*core3)))
+            printf("SUCCESS!\n");
+        printf("old: %i,now %i, to: %i\ncore0:%i, core1:%i, core2:%i, core3:%i\n", old,*from, *to, *core0, *core1, *core2, *core3);
 
+    }
+
+}
+
+void testIncrimentDicriment2()
+{
+   int calc=10000000; 
+    volatile int* from;
+    volatile int* to;
+    volatile int* core0;
+    volatile int* core1;
+    volatile int* core2;
+    volatile int* core3;
+    int old;
+    int pid = getPid();
+    from=&shared_base[20];
+    to=&shared_base[30];
+    core0=&shared_base[12];
+    core1=&shared_base[13];
+    core2=&shared_base[14];
+    core3=&shared_base[15];
+       
+    if(pid==0)
+    {
+        old=*from=calc*4;
+        *to=0;
+        *core0=0;
+        *core1=0;
+        *core2=0;
+        *core3=0;
+    }
+        volatile int e=*from;
+        e=(*to);
+        e=(*core0);
+        e=(*core1);
+        e=(*core2);
+        e=(*core3);
+
+
+    // sunchronize
+    shared_base[pid]=1;
+    int i;
+    __DMB
+    for(i=0; i<4; i++)
+        while(1!=shared_base[i]){};
+    __DMB
+        for(i=0;i<calc;i++)
+        {
+        
+            getAndIncrement(to);
+            getAndDicrement(from);
+            core0[pid]++;
+
+        }
+    shared_base[pid]=2;
+    __DMB
+    for(i=0; i<4; i++)
+        while(2!=shared_base[i]){};
+    __DMB
+
+    if(pid==0)
+    {
+        if(calc*4==*to && calc*4==((*core0)+(*core1)+(*core2)+(*core3)))
+            printf("SUCCESS!\n");
+        printf("from %i, to: %i\ncore0:%i, core1:%i, core2:%i, core3:%i\n",*from, *to, *core0, *core1, *core2, *core3);
+
+    }
+
+}
+
+
+void testIncrimentDicriment()
+{
+    
+    volatile int* from;
+    volatile int* to;
+    volatile int* core0;
+    volatile int* core1;
+    volatile int* core2;
+    volatile int* core3;
+    int old;
+    int pid = getPid();
+    from=&shared_base[20];
+    to=&shared_base[30];
+    core0=&shared_base[12];
+    core1=&shared_base[13];
+    core2=&shared_base[14];
+    core3=&shared_base[15];
+       
+    if(pid==0)
+    {
+        old=*from=10000000;
+        *to=0;
+        *core0=0;
+        *core1=0;
+        *core2=0;
+        *core3=0;
+    }
+        volatile int e=*from;
+        e=(*to);
+        e=(*core0);
+        e=(*core1);
+        e=(*core2);
+        e=(*core3);
+
+
+    // sunchronize
+    shared_base[pid]=1;
+    int i;
+    __DMB
+    for(i=0; i<4; i++)
+        while(1!=shared_base[i]){};
+    __DMB
+    if(pid!=0){
         for(;;)
         {
+        
             int old = getAndDicrement(from);
+            getAndIncrement(to);
+            core0[pid]++;
             if(0>=old)
                 break;
-            getAndIncrement(to);
-            (*core0)++;
+
         }
     }
-    if(pid==1)
+    while((*from)>0){}
+    if(pid==0)
     {
-        
-        for(;;)
-        { 
-            int old = getAndDicrement(from);
-            if(0>=old)
-                break;
-            getAndIncrement(to);
-            (*core1)++;
-        }
-        if(old==*to && old==((*core0)+(*core1)))
+        if(old==*to && old==((*core0)+(*core1)+(*core2)+(*core3)))
             printf("SUCCESS!\n");
-        printf("old: %i, to: %i\ncore0:%i, core1:%i\n", old, *to, *core0, *core1);
+        printf("old: %i,now %i, to: %i\ncore0:%i, core1:%i, core2:%i, core3:%i\n", old,*from, *to, *core0, *core1, *core2, *core3);
 
     }
 
@@ -156,7 +347,13 @@ void testIncrimentDicriment()
 
 void test_heap_singlecore()
 {
-    if(getPid()==1){
+   // if(getPid()==1){
+        int pid=getPid();
+        shared_base[pid]=1;
+        int i;
+        for(i=0; i<4; i++)
+            while(1!=shared_base[i]){};
+
         init_heap();
         char* testchar1;
         short* testshort;
@@ -216,7 +413,6 @@ void test_heap_singlecore()
         sm_free(intarray1);
 
         printf("allocating allot, and memseting all the alocated stuff\n");
-int i;
         int* ptrs[20];
         for(i=0; i<20; i++){
             int* thisptr=sm_alloc(sizeof(int[20000]));
@@ -243,10 +439,14 @@ int i;
         print_heap();
 
 
-    }
+   // }
 
 }
 
+void test_ttaslock()
+{
+
+}
 void _main()
 {
 	uint32_t p0, p1, p2 , p3;
@@ -256,9 +456,10 @@ void _main()
          "mov %2, r5\n"
          "mov %3, r6\n"
          : "=r"(p0), "=r"(p1), "=r"(p2), "=r"(p3) : );
-   // testIncrimentDicriment();
-  //  testCAS();
-  test_heap_singlecore();
+    testIncrimentDicriment2();
+    //testCAS();
+    //test_fail_IncrimentDicriment();
+     // test_heap_singlecore();
     asm("b .");
 }
 

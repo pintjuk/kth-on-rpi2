@@ -86,6 +86,8 @@ extern uint32_t _interrupt_vector_table;
         extern hc_config minimal_config;
 #endif
 #ifdef MAXFLOW
+        extern hc_config minimal_config_3;
+        extern hc_config minimal_config_2;
         extern hc_config minimal_config_1;
         extern hc_config minimal_config;
 #endif
@@ -128,8 +130,8 @@ void memory_commit()
 
 void memory_init()
 {
-	/*Setup heap pointer*/
-	core_mem_init();
+    /*Setup heap pointer*/
+    core_mem_init();
 
     uint32_t j; //TODO: Note: Removed unused variable va_offset here.
     
@@ -504,8 +506,6 @@ void slave_memory_init()
     memcpy(flpt_va_core_1, flpt_va, 1024 * 16);
     memcpy(flpt_va_core_2, flpt_va, 1024 * 16);
     memcpy(flpt_va_core_3, flpt_va, 1024 * 16);
-    
-
 }
 
 
@@ -551,7 +551,7 @@ void start_slave()
     COP_WRITE(COP_SYSTEM, COP_SYSTEM_CONTROL, sysrg);  
     
     setup_sharedmem(curr_vms[get_pid()]->master_pt_va);
-
+    setup_sharedmem(curr_flpt_va[get_pid()]);
     printf("Starting Guest %i on Core %i\n",  curr_vms[get_pid()]->id, get_pid());
     start_guest();
     asm("b .");
@@ -573,6 +573,7 @@ void setup_sharedmem(uint32_t table){
         uint32_t attr=(s<<16)|(tex<<12)|(ap<<10)|(domain<<5)|(c<<3)|(b<<2)|2;
         uint32_t* entryaddr=table|(va>>18);
         *entryaddr=(pa & 0xFFF00000)|attr;
+        
 }
 
 void start_()
@@ -596,7 +597,11 @@ void start_()
     multicore_guest_init();
 
     setup_sharedmem(vm_0.master_pt_va);
-
+    setup_sharedmem(flpt_va);
+    dump_mmu(flpt_va);
+    dump_mmu(vm_0.master_pt_va);
+    memory_commit();
+    memset(0xE0000000, 0, 0x0010000);
     *((uint32_t*)(0x4000009C))=boot_slave1-0xF0000000+0x01000000;
     *((uint32_t*)(0x400000AC))=boot_slave2-0xF0000000+0x01000000;
     *((uint32_t*)(0x400000BC))=boot_slave3-0xF0000000+0x01000000;

@@ -14,7 +14,7 @@ static uint32_t* heap_start=(uint32_t*)(SHARED_BASE+8);
 static uint32_t* heap_end=(uint32_t*)(SHARED_END);
 #define ALLOCATED_BLOCK (1<<31)
 
-#define DEBUG_ALLOC
+//#define DEBUG_ALLOC
 
 #ifdef DEBUG_ALLOC
     #define DEBUG1(a) printf(a)
@@ -141,7 +141,7 @@ void sm_free(void* ptr)
     (*current_block)=(*current_block)&(~ALLOCATED_BLOCK);
     *(current_block+*current_block-1)=*current_block;
     uint32_t* nextblock=current_block+(*current_block);
-    printf("next block %x", nextblock);
+    DEBUG2("next block %x", nextblock);
     if(nextblock<heap_end)
     {
         if(!((*nextblock)&ALLOCATED_BLOCK))
@@ -155,11 +155,11 @@ void sm_free(void* ptr)
     uint32_t priviousBlockLen=*(current_block-1);
     priviousBlockLen=priviousBlockLen&(~ALLOCATED_BLOCK);
     uint32_t* privius=(current_block-priviousBlockLen);
-    printf("privious block: %x\n", privius);
-    printf("heapstart %x\n", heap_start);
+    DEBUG2("privious block: %x\n", privius);
+    DEBUG2("heapstart %x\n", heap_start);
     if(privius>=heap_start)
     {
-        printf("content of privious trailer: %x\n", *(current_block-1));
+        DEBUG2("content of privious trailer: %x\n", *(current_block-1));
         if(!(*(current_block-1)&ALLOCATED_BLOCK))
         {
             DEBUG1("starting to merg privious block\n");
