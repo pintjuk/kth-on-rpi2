@@ -3,8 +3,9 @@
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
+#ifndef _SYS__STDINT_H
 typedef unsigned int uint32_t;
-
+#endif
 typedef unsigned int addr_t; /* XXX: this wont work on 64-bit systems */
 typedef addr_t size_t;
 
