@@ -14,6 +14,54 @@ store:
     str r0, [r1]   
     bx lr
 
+/*.global lock
+lock:
+    LDREX R5, [R0]       // read lock
+    CMP R5, #0           // check if 0
+    WFENE                // sleep if the lock is held
+    STREXEQ R5, R1, [R0] // attempt to store new value
+    CMPEQ R5, #0         // test if store suceeded
+    BNE lock             // retry if not
+    DMB // ensures that all subsequent accesses are observed after the
+        // gaining of the lock is observed
+        // loads and stores in the critical region can now be performed
+    bx lr
+
+.global unlock
+unlock:
+    MOV R1, #0
+    DMB             // ensure all previous accesses are observed before the lock is cleared
+    STR R1, [R0]    // clear the lock.
+    DSB             // ensure completion of the store that cleared the lock before sending the event
+    SEV
+    bx lr
+*/
+
+.global lock
+lock:
+    //r0: lock addrs, r1: 1, r2: initial the lock value then status of strex
+    mov r1, #1
+    LDREX R2, [R0]       // read lock
+    CMP R2, #0           // check if 0
+    WFENE                // sleep if the lock is held
+    STREXEQ R2, R1, [R0] // attempt to store new value
+    CMPEQ R2, #0         // test if store suceeded
+    BNE lock             // retry if not
+    DMB // ensures that all subsequent accesses are observed after the
+        // gaining of the lock is observed
+        // loads and stores in the critical region can now be performed
+    bx lr
+
+.global unlock
+unlock:
+    MOV R1, #0
+    DMB             // ensure all previous accesses are observed before the lock is cleared
+    STR R1, [R0]    // clear the lock.
+    DSB             // ensure completion of the store that cleared the lock before sending the event
+    SEV
+    bx lr
+
+
 .global TAS 
 TAS:
     //r0= addres, r1= old value,r2=succes?, r3=true

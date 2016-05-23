@@ -4,9 +4,24 @@
 #include "maxflow.h"
 #include "shared_alloc.h"
 #include "dtest.h"
+#include "ttas.h"
+
 volatile uint32_t* shared_base=(uint32_t*)SHARED_BASE;
 
-#define __DMB { asm volatile ("dmb"); } 
+extern void lock(uint32_t*);
+extern void unlock(uint32_t*);
+
+#define DMB asm volatile ("dmb")
+#define WFE asm volatile ("wfe")
+#define SEV asm volatile ("sev") 
+
+#define PRINTF(...)         \
+    lock(shared_base);      \
+    printf(__VA_ARGS__);    \
+    unlock(shared_base);
+
+
+
 uint32_t getPid(){
     static int memorizepid= -1;
     if(-1!=memorizepid)
@@ -18,6 +33,38 @@ uint32_t getPid(){
         syscall_get_pid(&memorizepid);
         return memorizepid;
     }
+}
+
+void nothenig(){
+}
+void barier(uint32_t* count/*address to array of length= number of threads*/){
+    static uint32_t mysence = 1;
+    static uint32_t level   = 0;
+    uint32_t* sence         = count+1;
+    int position = getAndIncrement(count);
+    
+   // PRINTF("addrs position %x, sence %x, mysence %x, pid %x\n", position, (*sence), mysence, getPid());
+    if(position == 3)
+    {
+        DMB;
+        (*count)=0;
+        (*sence)=mysence;
+        DMB;
+        SEV;
+    }
+    else
+    {
+        
+        for(;;)
+        {
+            if((*sence)==mysence)
+                break;
+            printf("");
+            WFE;
+        }
+    }
+   // PRINTF("new sence %x, pid %x\n", (*sence), getPid());
+    mysence=!(*sence);
 }
 
 void testCAS()
@@ -93,6 +140,71 @@ void testCAS()
 
     }
 
+
+}
+
+void test_fail_lock()
+{
+    
+    volatile int* mylock;
+    volatile int* evidence;
+    volatile uint32_t* ba;
+    int pid     = getPid();
+    ba      = &shared_base[1];
+    mylock      = &shared_base[20];
+    evidence    = &shared_base[30];
+    if(pid==0)
+    {
+        mylock[0]=0;
+        evidence[0]=0;
+    }
+        // sunchronize
+    int i;
+    barier(ba);
+    PRINTF("lel %x\n", mylock);
+
+    int k;
+    for(k=0; k<100;k++)
+    {
+        //lock(mylock);
+        PRINTF("mybe is pid:%x\n", getPid());
+        int j;
+        for(j=0; j<10000; j++)
+        {
+            evidence[0]++;
+        }
+        for(j=0; j<10000; j++)
+        {
+            evidence[0]--;
+        }
+
+        //unlock(mylock);
+        
+        barier(ba);
+        if(0==pid)
+        {
+            PRINTF("***************\n");
+            if(evidence[0]!=0)
+            {
+                PRINTF("FAILD!\n evedince %x\n", evidence[0]);
+                return;
+            }
+        }
+    }
+
+    if(getPid()==0)
+    {
+        if(evidence[0]==0)
+        {
+            PRINTF("SUCCESS!\n");
+        }
+        else
+        {
+            printf("\n");
+        }
+        PRINTF("evidence: %i\n", evidence[0]);
+
+    }
 
 }
 
@@ -186,10 +298,8 @@ void fail_testIncrimentDicriment2()
     // sunchronize
     shared_base[pid]=1;
     int i;
-    __DMB
     for(i=0; i<4; i++)
         while(1!=shared_base[i]){};
-    __DMB
         for(i=0;i<calc;i++)
         {
         
@@ -198,11 +308,8 @@ void fail_testIncrimentDicriment2()
 
         }
     shared_base[pid]=2;
-    __DMB
     for(i=0; i<4; i++)
         while(2!=shared_base[i]){};
-    __DMB
-
     if(pid==0)
     {
         if(calc*4==*to && calc*4==((*core0)+(*core1)+(*core2)+(*core3)))
@@ -251,10 +358,8 @@ void testIncrimentDicriment2()
     // sunchronize
     shared_base[pid]=1;
     int i;
-    __DMB
     for(i=0; i<4; i++)
         while(1!=shared_base[i]){};
-    __DMB
         for(i=0;i<calc;i++)
         {
         
@@ -264,10 +369,8 @@ void testIncrimentDicriment2()
 
         }
     shared_base[pid]=2;
-    __DMB
     for(i=0; i<4; i++)
         while(2!=shared_base[i]){};
-    __DMB
 
     if(pid==0)
     {
@@ -318,10 +421,8 @@ void testIncrimentDicriment()
     // sunchronize
     shared_base[pid]=1;
     int i;
-    __DMB
     for(i=0; i<4; i++)
         while(1!=shared_base[i]){};
-    __DMB
     if(pid!=0){
         for(;;)
         {
@@ -456,7 +557,8 @@ void _main()
          "mov %2, r5\n"
          "mov %3, r6\n"
          : "=r"(p0), "=r"(p1), "=r"(p2), "=r"(p3) : );
-    testIncrimentDicriment2();
+   // testIncrimentDicriment2();
+ test_fail_lock();
     //testCAS();
     //test_fail_IncrimentDicriment();
      // test_heap_singlecore();

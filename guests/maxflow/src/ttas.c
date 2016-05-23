@@ -19,5 +19,5 @@ BOOL ttas_attempt_lock(uint32_t* state)
 
 void ttas_unlock(uint32_t* state)
 {
-    *state=0;
+    (*state)=0;
 }
