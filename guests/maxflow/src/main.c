@@ -5,21 +5,10 @@
 #include "shared_alloc.h"
 #include "dtest.h"
 #include "ttas.h"
+#include "buffer.h"
+
 
 volatile uint32_t* shared_base=(uint32_t*)SHARED_BASE;
-
-extern void lock(uint32_t*);
-extern void unlock(uint32_t*);
-
-#define DMB asm volatile ("dmb")
-#define WFE asm volatile ("wfe")
-#define SEV asm volatile ("sev") 
-
-#define PRINTF(...)         \
-    lock(shared_base);      \
-    printf(__VA_ARGS__);    \
-    unlock(shared_base);
-
 
 
 uint32_t getPid(){
@@ -35,9 +24,8 @@ uint32_t getPid(){
     }
 }
 
-void nothenig(){
-}
-void barier(uint32_t* count/*address to array of length= number of threads*/){
+void barier(addr_t b/*address to array of length= number of threads*/){
+    uint32_t* count = (uint32_t*) b;
     static uint32_t mysence = 1;
     static uint32_t level   = 0;
     uint32_t* sence         = count+1;
@@ -455,7 +443,7 @@ void test_heap_singlecore()
         for(i=0; i<4; i++)
             while(1!=shared_base[i]){};
 
-        init_heap();
+        sm_init_heap();
         char* testchar1;
         short* testshort;
         int* testint;
@@ -464,52 +452,52 @@ void test_heap_singlecore()
         int* intarray3;
         testshort=sm_alloc(sizeof(short));
         testchar1=sm_alloc(sizeof(char));
-        print_heap();
+        sm_print_heap();
         sm_free(testchar1);
-        print_heap();
+        sm_print_heap();
         testchar1 = sm_alloc(sizeof(char));
-        print_heap();
+        sm_print_heap();
 
         intarray1=sm_alloc(sizeof(int[30]));
         intarray2=sm_alloc(sizeof(int[30]));
         intarray3=sm_alloc(sizeof(int[20]));
-        print_heap();
+        sm_print_heap();
         sm_free(intarray2);
-        print_heap();
+        sm_print_heap();
         printf("allocating interray2 sizeof int[29]");
         intarray2=sm_alloc(sizeof(int[29]));
-        print_heap();
+        sm_print_heap();
         sm_free(intarray2);
-        print_heap();
+        sm_print_heap();
         printf("allocating interray2 sizeof int[28]");
         intarray2=sm_alloc(sizeof(int[28]));
-        print_heap();
+        sm_print_heap();
         sm_free(intarray2);
-        print_heap();
+        sm_print_heap();
         printf("allocating interray2 sizeof int[27]");
         intarray2=sm_alloc(sizeof(int[27]));
-        print_heap();
+        sm_print_heap();
         printf("freeing intarray2\n");
         sm_free(intarray2);
-        print_heap();
+        sm_print_heap();
         printf("freeing intarray3\n");
         sm_free(intarray3);
-        print_heap();
+        sm_print_heap();
         sm_free(testchar1);
         sm_free(testshort);
         sm_free(intarray1);
-        print_heap();
+        sm_print_heap();
 
         printf("trying to alloc to much\n");
         printf("result: %x\n", sm_alloc(sizeof(int[262144])));
-        print_heap();
+        sm_print_heap();
 
         printf("trying to alloc to much in two batches\n");
         intarray1=sm_alloc(sizeof(int[262140]));
-        print_heap();
+        sm_print_heap();
         intarray2=sm_alloc(sizeof(int[10]));
         printf("result of second alloc %x\n", intarray2);
-        print_heap();
+        sm_print_heap();
 
         sm_free(intarray1);
 
@@ -529,25 +517,42 @@ void test_heap_singlecore()
             if(ptrs[i*2]!=NULL)
                 sm_free(ptrs[i*2]);
         }
-        print_heap();
+        sm_print_heap();
         for(i=0; i<10; i++)
         {
             if(ptrs[i*2+1]!=NULL)
                 sm_free(ptrs[i*2+1]);
-            print_heap();
+            sm_print_heap();
         }
 
-        print_heap();
+        sm_print_heap();
 
 
    // }
 
 }
 
-void test_ttaslock()
-{
+void test_buffer(){
+    struct Queue buf=new_nonconcurrent_ring_buffer(5, sizeof(int));
+    int lel[10]={1,2,3,4,5,6,7,8,9};
+    buf.Enqueue(&buf, &lel[0]);
+    buf.Enqueue(&buf, &lel[1]);
+    buf.Enqueue(&buf, &lel[2]);
+    buf.Enqueue(&buf, &lel[3]);
+    buf.Enqueue(&buf, &lel[4]);
+
+    printf("try to allocate %x\n", buf.Enqueue(&buf, &lel[5]));
+    printf("dequeing %i\n", *(int*)(buf.Dequeue(&buf)));
+    printf("try to allocate %x\n", buf.Enqueue(&buf, &lel[1]));
+    printf("try to allocate %x\n", buf.Enqueue(&buf, &lel[1]));
+    printf("dequeing %i\n", *(int*)(buf.Dequeue(&buf)));
+    printf("dequeing %i\n", *(int*)(buf.Dequeue(&buf)));
+    printf("dequeing %i\n", *(int*)(buf.Dequeue(&buf)));
+    printf("dequeing %i\n", *(int*)(buf.Dequeue(&buf)));
+    printf("dequeing %i\n", *(int*)(buf.Dequeue(&buf)));
 
 }
+
 void _main()
 {
 	uint32_t p0, p1, p2 , p3;
@@ -557,11 +562,20 @@ void _main()
          "mov %2, r5\n"
          "mov %3, r6\n"
          : "=r"(p0), "=r"(p1), "=r"(p2), "=r"(p3) : );
-   // testIncrimentDicriment2();
- test_fail_lock();
+    
+    if(0==getPid())
+    {
+        init_heap();
+        s_init_heap();
+    }
+    barier(&__main_berrier__);
+    if(0==getPid())
+        test_buffer();
+    // testIncrimentDicriment2();
+    // test_fail_lock();
     //testCAS();
     //test_fail_IncrimentDicriment();
-     // test_heap_singlecore();
+    // test_heap_singlecore();
     asm("b .");
 }
 

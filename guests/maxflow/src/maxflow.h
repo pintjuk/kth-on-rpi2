@@ -9,9 +9,31 @@ extern uint32_t getAndIncrement(addr_t);
 extern uint32_t CAS(addr_t, uint32_t, uint32_t);
 uint32_t getPid();
 
+
+extern void lock(addr_t);
+extern void unlock(addr_t);
+extern void s_init_heap();
+extern void s_free(void*);
+extern void* s_malloc(uint32_t size);
+extern void* s_calloc(uint32_t num, uint32_t size);
+extern addr_t __main_berrier__, __print_lock__;
+
+
 #define SHARED_BASE (0xE0000000)
 #define SHARED_SIZE (0x00100000)
 #define SHARED_END (SHARED_BASE+SHARED_SIZE)
 
 
+
+#define DMB asm volatile ("dmb")
+#define WFE asm volatile ("wfe")
+#define SEV asm volatile ("sev") 
+
+#define PRINTF(...)         \
+    lock(__print_lock__);      \
+    printf(__VA_ARGS__);    \
+    unlock(__print_lock__);
+
+
 #endif
+

@@ -1,20 +1,16 @@
 TARGET=maxflow
 SRC_DIRS += src 
+#INC_DIRS += ../../library/include
+DEPENDS = ../../library/uc ../../drivers ../../library/mem ../../library/guest ../../library/util 
+LIB_FILES=guest uc mem util drivers
 
-DEPENDS = ../../library/uc ../../drivers ../../library/guest
-LIB_FILES=guest uc drivers
-
-LDSCRIPT = ../../library/guest/default.ld
+LDSCRIPT = linker.ld
 
 # get platform dependent flags
 include ../../target
 include ../../templates/platform/$(PLATFORM).cfg
 include ../../templates/cpu/$(PLATFORM_CPU).cfg
 
-ifndef TEST_NAME
-  TEST_NAME = TEST_UNDEFINED
-endif
-SRC_CFLAGS += -D$(TEST_NAME)=1
 
 # include templates
 include ../../templates/make/toolchain.inc

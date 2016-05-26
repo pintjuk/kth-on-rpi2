@@ -27,7 +27,7 @@ static uint32_t* heap_end=(uint32_t*)(SHARED_END);
 #endif
 
 
-void init_heap()
+void sm_init_heap()
 {
     *big_heap_lock=1;
     *heap_magic=HEAP_MAGIC;
@@ -41,7 +41,7 @@ void init_heap()
 
 }
 
-void print_heap()
+void sm_print_heap()
 {
     if(*heap_magic!=HEAP_MAGIC)
     {
