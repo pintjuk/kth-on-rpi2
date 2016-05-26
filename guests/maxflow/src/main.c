@@ -7,8 +7,8 @@
 #include "ttas.h"
 #include "buffer.h"
 
-
-volatile uint32_t* shared_base=(uint32_t*)SHARED_BASE;
+uint32_t main_berrier shared;
+uint32_t print_lock shared;
 
 
 uint32_t getPid(){
@@ -24,7 +24,7 @@ uint32_t getPid(){
     }
 }
 
-void barier(addr_t b/*address to array of length= number of threads*/){
+void barier(uint32_t* b/*address to array of length= number of threads*/){
     uint32_t* count = (uint32_t*) b;
     static uint32_t mysence = 1;
     static uint32_t level   = 0;
@@ -54,7 +54,7 @@ void barier(addr_t b/*address to array of length= number of threads*/){
    // PRINTF("new sence %x, pid %x\n", (*sence), getPid());
     mysence=!(*sence);
 }
-
+uint32_t shared_base[100] shared;
 void testCAS()
 {
     volatile int* from;
@@ -568,7 +568,7 @@ void _main()
         init_heap();
         s_init_heap();
     }
-    barier(&__main_berrier__);
+    barier(&main_berrier);
     if(0==getPid())
         test_buffer();
     // testIncrimentDicriment2();
