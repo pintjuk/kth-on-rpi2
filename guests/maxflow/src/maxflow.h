@@ -31,13 +31,18 @@ extern void* s_calloc(uint32_t num, uint32_t size);
 
 #define shared __attribute__((section(".shared_bss")))
 
-extern uint32_t main_berrier shared;
+struct barrier {
+    uint32_t count;
+    uint32_t sence;    
+};
+    
+extern struct barrier main_berrier shared;
 extern uint32_t print_lock shared;
 
 #define PRINTF(...)         \
-    lock(print_lock);   \
+    lock(&print_lock);   \
     printf(__VA_ARGS__);    \
-    unlock(print_lock);
+    unlock(&print_lock);
 
 #endif
 

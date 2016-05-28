@@ -70,12 +70,9 @@ void *s_malloc(uint32_t size){
 
 void *s_calloc(uint32_t num, uint32_t size){
 	/*Unefficient calloc*/
-
-    lock(&sheap_lock);
-	void *pointer;
-	pointer = s_malloc(num*size);
-	memset(pointer,'\0',num*size);
-    unlock(&sheap_lock);
+    void *pointer;
+    pointer = s_malloc(num*size);
+    memset(pointer,'\0',num*size);
     return pointer;
 }
 

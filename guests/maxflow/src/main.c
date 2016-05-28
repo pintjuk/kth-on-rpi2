@@ -7,7 +7,7 @@
 #include "ttas.h"
 #include "buffer.h"
 
-uint32_t main_berrier shared;
+struct barrier main_berrier shared;
 uint32_t print_lock shared;
 
 
@@ -24,19 +24,17 @@ uint32_t getPid(){
     }
 }
 
-void barier(uint32_t* b/*address to array of length= number of threads*/){
+void barrier1(struct barrier* b/*address to array of length= number of threads*/){
     uint32_t* count = (uint32_t*) b;
     static uint32_t mysence = 1;
-    static uint32_t level   = 0;
-    uint32_t* sence         = count+1;
-    int position = getAndIncrement(count);
+    int position = getAndIncrement(&(b->count));
     
    // PRINTF("addrs position %x, sence %x, mysence %x, pid %x\n", position, (*sence), mysence, getPid());
     if(position == 3)
     {
         DMB;
-        (*count)=0;
-        (*sence)=mysence;
+        b->count=0;
+        b->sence=mysence;
         DMB;
         SEV;
     }
@@ -45,14 +43,14 @@ void barier(uint32_t* b/*address to array of length= number of threads*/){
         
         for(;;)
         {
-            if((*sence)==mysence)
+            if((b->sence)==mysence)
                 break;
             printf("");
             WFE;
         }
     }
    // PRINTF("new sence %x, pid %x\n", (*sence), getPid());
-    mysence=!(*sence);
+    mysence=!(b->sence);
 }
 uint32_t shared_base[100] shared;
 void testCAS()
@@ -148,7 +146,7 @@ void test_fail_lock()
     }
         // sunchronize
     int i;
-    barier(ba);
+    //barier(ba);
     PRINTF("lel %x\n", mylock);
 
     int k;
@@ -168,7 +166,7 @@ void test_fail_lock()
 
         //unlock(mylock);
         
-        barier(ba);
+       // barier(ba);
         if(0==pid)
         {
             PRINTF("***************\n");
@@ -553,6 +551,53 @@ void test_buffer(){
 
 }
 
+struct Queue shared_test_buffer shared;
+void test_locked_buffer(){
+    int i;
+    
+    if(0==getPid()){
+        PRINTF("aoeu");
+        shared_test_buffer=new_locked_ring_buffer(10000, sizeof(uint32_t));
+        PRINTF("AOEU");
+    }
+    
+    barrier1(&main_berrier);
+    for(i=0; i < 5000; i++)
+    {
+        int w=(100000*getPid())+i;
+        shared_test_buffer.Enqueue(&shared_test_buffer, &w);
+    }
+
+    barrier1(&main_berrier);
+    uint32_t priv[4]={0,0,0,0};
+    int popedcount=0; 
+
+    PRINTF("aoeuaoeuaoeu: %i\n", shared_test_buffer.Size(&shared_test_buffer));
+    for(;;)
+    {
+        uint32_t* res = shared_test_buffer.Dequeue(&shared_test_buffer);
+        if(res== NULL)
+            break;
+        if(priv[(*res)/100000] > (*res)){
+            PRINTF("FALED!!! ovorunvalue\n %i, %i\n", priv[(*res)/1000], (*res));
+            return;
+        }
+
+        popedcount++;
+        priv[(*res)/100000] = (*res);
+
+       // PRINTF("Dequeued: %i, %i\n", *res, (*res)/1000);
+        free(res);
+    }
+    barrier1(&main_berrier);
+    PRINTF("=%i\n", popedcount);
+    
+}
+
+void foo(uint32_t *i){
+    PRINTF("*#*#*#*#*#*#: %i\n", *i);
+}
+
 void _main()
 {
 	uint32_t p0, p1, p2 , p3;
@@ -562,15 +607,24 @@ void _main()
          "mov %2, r5\n"
          "mov %3, r6\n"
          : "=r"(p0), "=r"(p1), "=r"(p2), "=r"(p3) : );
-    
-    if(0==getPid())
+    int i;
+    barrier1(&main_berrier);
+
+    init_heap();
+    if(3==getPid())
     {
-        init_heap();
         s_init_heap();
+        //test_buffer();
     }
-    barier(&main_berrier);
-    if(0==getPid())
-        test_buffer();
+
+    test_locked_buffer();
+ PRINTF("lelelel\n");
+
+   // barrier1(&main_berrier);
+   // PRINTF("WHATHATFUCK!");
+   // barier(&main_berrier);
+    
+    //test_locked_buffer();
     // testIncrimentDicriment2();
     // test_fail_lock();
     //testCAS();
