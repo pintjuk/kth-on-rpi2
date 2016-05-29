@@ -1,6 +1,7 @@
 #include <lib.h>
 #include <types.h>
 
+#include "goldberg.h"
 #include "maxflow.h"
 #include "shared_alloc.h"
 #include "dtest.h"
