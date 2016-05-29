@@ -10,22 +10,22 @@ struct r_edge
     uint32_t from;
     uint32_t to;
     uint32_t residual;
-    r_edge*  back_edge;
-}
+    struct r_edge*  back_edge;
+};
 
 struct node
 {
     uint32_t id;
     uint32_t lable;
     uint32_t excess;
-}
+};
 
 struct nighbors
 {
     uint32_t capacity;
     uint32_t size;
-    r_edge* list;
-}
+    struct r_edge* list;
+};
 
 void testflow();
 

@@ -39,10 +39,7 @@ struct barrier {
 extern struct barrier main_berrier shared;
 extern uint32_t print_lock shared;
 
-#define PRINTF(...)         \
-    lock(&print_lock);   \
-    printf(__VA_ARGS__);    \
-    unlock(&print_lock);
+#define PRINTF(...) { lock(&print_lock); printf(__VA_ARGS__); unlock(&print_lock); }
 
 #endif
 

@@ -610,7 +610,8 @@ void _main()
          : "=r"(p0), "=r"(p1), "=r"(p2), "=r"(p3) : );
     int i;
     barrier1(&main_berrier);
-
+    testflow();
+    /*
     init_heap();
     if(3==getPid())
     {
@@ -619,8 +620,8 @@ void _main()
     }
 
     test_locked_buffer();
- PRINTF("lelelel\n");
-
+    PRINTF("lelelel\n");
+    */
    // barrier1(&main_berrier);
    // PRINTF("WHATHATFUCK!");
    // barier(&main_berrier);
