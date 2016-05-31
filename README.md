@@ -55,6 +55,25 @@ In order to build the hypervisor, a binary of the paravirtualized kernel is need
 You can download a precompiled version from https://bitbucket.org/guancio/sth_deps.
 Copy zImage.bin into guests/linux/build/
 
+### dependencis and usefull toles on ubuntu
+	sudo apt-get install gparted
+    	sudo apt-get install screen
+    	sudo apt-get install gcc-arm-none-eabi
+	sudo apt-get install cmake
+    	sudo apt-get install gcc-arm-linux-gnueabihf
+    	sudo apt-get install u-boot-tools
+    	sudo apt-get install xinetd tftpd tftp
+    	sudo apt-get install make libtool pkg-config autoconf automake texinfo
+    	sudo apt-get install libusb-1.0-0
+    	sudo apt-get install gdb-arm-none-eabi
+    	sudo apt-get install gksu
+    	sudo apt-get install thunar
+    	sudo apt-get install libftdi1-2
+    	
+on 64-bit version, additionally:
+
+	apt-get install multilib
+
 In order to build the Hypervisor, execute the Makefile located at the root of the source tree after configuring the target file with the command
 
 	make
