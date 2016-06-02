@@ -2,48 +2,45 @@
 #include "maxflow.h"    
 #include "ttas.h"
 
-    /***********************
-    * heap header
-    * 0-4: magic number, signifies that heap is initilized
-    * 4-8: heap lock
-    ***********************/
-#define HEAP_MAGIC (0xABC)
-static uint32_t* heap_magic=(uint32_t*)(SHARED_BASE);
-static uint32_t* big_heap_lock=(uint32_t*)(SHARED_BASE+4);
-static uint32_t* heap_start=(uint32_t*)(SHARED_BASE+8);
-static uint32_t* heap_end=(uint32_t*)(SHARED_END);
 #define ALLOCATED_BLOCK (1<<31)
+#define HEAP_MAGIC 123123
 
 //#define DEBUG_ALLOC
 
 #ifdef DEBUG_ALLOC
+    #define DEBUG(...) printf(__VA_ARGS__)
     #define DEBUG1(a) printf(a)
     #define DEBUG2(a, b) printf(a, b)
     #define DEBUG3(a, b, c) printf(a, b, c)
 #else
+    #define DEBUG(...)
     #define DEBUG1(a)
     #define DEBUG2(a, b) 
     #define DEBUG3(a, b, c) 
 #endif
 
 
-void sm_init_heap()
+void sm_init_heap(struct sm_heap_ctxt_t* heap_ctxt, uint32_t* heap_start, uint32_t* heap_end )
 {
-    *big_heap_lock=1;
-    *heap_magic=HEAP_MAGIC;
+    heap_ctxt->inited=HEAP_MAGIC; 
     DEBUG1("*initilizing heap\n");
-    DEBUG3("heap_magic %x\nheap_start %x\n", heap_magic, heap_start);
-    DEBUG3("heap_trailer %x\n aoeu %x \n", ((uint32_t*)SHARED_END)-1, 1<<32);
-    *heap_start = (heap_end-heap_start)&(~ALLOCATED_BLOCK);
+    DEBUG3("heap_magic %x\nheap_start %x\n", heap_ctxt->inited, heap_start);
+    DEBUG3("heap_trailer %x\n aoeu %x \n", (heap_end)-1, 1<<32);
+    heap_ctxt->start=heap_start;
+    heap_ctxt->end=heap_end;
+    *(heap_ctxt->start) = (heap_end-heap_start)&(~ALLOCATED_BLOCK);
     DEBUG2("header of initial block %x\n", *heap_start); 
-    *(heap_end-1) = *heap_start;
-    *big_heap_lock=0;
+    *(heap_ctxt->start-1) = *heap_start;
 
+    DEBUG2("trailer of initial block %x\n", *heap_start); 
 }
 
-void sm_print_heap()
+void sm_print_heap(struct sm_heap_ctxt_t* ctxt)
 {
-    if(*heap_magic!=HEAP_MAGIC)
+    uint32_t* heap_start = ctxt->start;
+    uint32_t* heap_end = ctxt->end;
+    
+    if(ctxt->inited!=HEAP_MAGIC)
     {
         printf("Heap not initilized!\n");
         return;
@@ -66,13 +63,13 @@ void sm_print_heap()
     }
 }
 
-void * sm_alloc(size_t size)
+void * sm_alloc(struct sm_heap_ctxt_t* ctxt, size_t size)
 {
-
-    if(*heap_magic!=HEAP_MAGIC)
+    uint32_t* heap_start = ctxt->start;
+    uint32_t* heap_end = ctxt->end;
+    
+    if(ctxt->inited!=HEAP_MAGIC)
         return NULL;
-
-    ttas_lock(big_heap_lock);
 
     DEBUG2("*sm alloc\n size=%x\n", size);
     uint32_t aligned_size = (size+3)/4;
@@ -121,19 +118,19 @@ void * sm_alloc(size_t size)
         }
         
     }
-    ttas_unlock(big_heap_lock);
     return result;
-    
 }
 
 
 
-void sm_free(void* ptr)
+void sm_free(struct sm_heap_ctxt_t* ctxt, void* ptr)
 {
-    if(*heap_magic!=HEAP_MAGIC)
+    uint32_t* heap_start = ctxt->start;
+    uint32_t* heap_end = ctxt->end;
+  
+   if(ctxt->inited!=HEAP_MAGIC)
         return NULL;
 
-    ttas_lock(big_heap_lock);
     
     uint32_t* current_block = (uint32_t*)ptr;
     current_block--;
@@ -170,5 +167,4 @@ void sm_free(void* ptr)
         }
     }
 
-    ttas_unlock(big_heap_lock);
 }

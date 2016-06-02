@@ -42,6 +42,11 @@ static void* Dequeu_nonconcurrent_ring_buffer (struct Queue* self)
         return NULL;
 
     void* result=malloc(self->element_size);
+    if(result==NULL)
+    {
+        PRINTF("************ FALED TO ALLOCATE DEQUEDE VALUE elem size %i, \n", self->element_size);
+        return NULL;
+    }
     memcpy(result, buff->start, self->element_size);
     buff->count--;
     if(buff->start==buff->data+(self->capacity*self->element_size))

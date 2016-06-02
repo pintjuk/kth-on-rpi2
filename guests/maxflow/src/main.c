@@ -432,10 +432,13 @@ void testIncrimentDicriment()
     }
 
 }
-
-void test_heap_singlecore()
+extern addr_t __heap_start__, __heap_end__;
+/*void test_heap_singlecore()
 {
    // if(getPid()==1){
+   sm_heap_ctxt_t heap;
+
+        sm_init_heap(&heap, &__heap_start__, &__heap_end__)
         int pid=getPid();
         shared_base[pid]=1;
         int i;
@@ -529,7 +532,7 @@ void test_heap_singlecore()
 
    // }
 
-}
+}*/
 
 void test_buffer(){
     struct Queue buf=new_nonconcurrent_ring_buffer(5, sizeof(int));
@@ -610,18 +613,19 @@ void _main()
          : "=r"(p0), "=r"(p1), "=r"(p2), "=r"(p3) : );
     int i;
     barrier1(&main_berrier);
-    testflow();
-    /*
-    init_heap();
+    
+    
+    barrier1(&main_berrier);
+
     if(3==getPid())
     {
-        s_init_heap();
+       // s_init_heap();
         //test_buffer();
+        init_heap();
+        testflow();
     }
 
-    test_locked_buffer();
-    PRINTF("lelelel\n");
-    */
+  //  test_locked_buffer();
    // barrier1(&main_berrier);
    // PRINTF("WHATHATFUCK!");
    // barier(&main_berrier);
@@ -631,7 +635,7 @@ void _main()
     // test_fail_lock();
     //testCAS();
     //test_fail_IncrimentDicriment();
-    // test_heap_singlecore();
+   // test_heap_singlecore();
     asm("b .");
 }
 

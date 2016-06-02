@@ -11,19 +11,24 @@
 #include <memlib.h>
 #include <lib.h>
 #include "maxflow.h"
+#include "shared_alloc.h";
 
 extern addr_t __heap_start__, __heap_end__, __shared_heap_start__, __shared_heap_end__;
  
-static heap_ctxt_t heap;
-
+//static heap_ctxt_t heap;
+static struct sm_heap_ctxt_t heap;
 void free(void *adr){
-
-	heap_free(&heap, adr);
+        PRINTF("^^^^^^^^ deleted  %x\n", adr);
+//	heap_free(&heap, adr);
+        sm_free(&heap, adr);
 }
 
 void *malloc(uint32_t size){
-
-	return heap_alloc(&heap, size);
+        
+	//void* ret= heap_alloc(&heap, size);
+        void* ret= sm_alloc(&heap, size);
+        PRINTF("^^^^^^^^ alocated %x\n", ret);
+        return ret;
 
 }
 
@@ -40,7 +45,8 @@ void *calloc(uint32_t num, uint32_t size){
 void init_heap(){
     addr_t start = &__heap_start__;
     addr_t end   = &__heap_end__;
-    heap_init( &heap, end - start - 1, (void *)start);
+    sm_init_heap(&heap, &__heap_start__, &__heap_end__);
+    //heap_init( &heap, end - start - 1, (void *)start);
 }
 
 /*
